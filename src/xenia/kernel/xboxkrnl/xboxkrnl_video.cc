@@ -22,7 +22,7 @@
 #include "xenia/kernel/xboxkrnl/xboxkrnl_rtl.h"
 #include "xenia/xbox.h"
 
-DEFINE_int32(kernel_display_gamma_type, 1,
+DEFINE_int32(kernel_display_gamma_type, 2,
              "Display gamma type: 0 - linear, 1 - sRGB, 2 - TV (BT.709), "
              "3 - power specified via kernel_display_gamma_power.");
 DEFINE_double(kernel_display_gamma_power, 2.22222233,
