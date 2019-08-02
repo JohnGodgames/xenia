@@ -14,7 +14,7 @@
 #include "xenia/kernel/xenumerator.h"
 #include "xenia/xbox.h"
 
-DEFINE_bool(license_mask, false, "Toggle license for XBLA games");
+DEFINE_bool(content_mask, false, "Toggle license for XBLA games");
 namespace xe {
 namespace kernel {
 namespace xam {
@@ -50,7 +50,7 @@ dword_result_t XamContentGetLicenseMask(lpdword_t mask_ptr,
   // Each bit in the mask represents a granted license. Available licenses
   // seems to vary from game to game, but most appear to use bit 0 to indicate
   // if the game is purchased or not.
-  *mask_ptr = (!FLAGS_license_mask) ? 0 : -1;
+  *mask_ptr = (!FLAGS_content_mask) ? 0 : -1;
 
   if (overlapped_ptr) {
     kernel_state()->CompleteOverlappedImmediate(overlapped_ptr,
