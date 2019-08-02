@@ -32,6 +32,7 @@
 DEFINE_bool(headless, false,
             "Don't display any UI, using defaults for prompts as needed.");
 
+DEFINE_int32(language, 1, "Language, valid  1-15");
 namespace xe {
 namespace kernel {
 

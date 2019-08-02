@@ -56,9 +56,13 @@ X_STATUS xeExGetXConfigSetting(uint16_t category, uint16_t setting,
           xe::store_and_swap<uint32_t>(value, 0);
           break;
         case 0x0009:  // XCONFIG_USER_LANGUAGE
-          setting_size = 4;
-          xe::store_and_swap<uint32_t>(value, 0x00000001);  // English
-          break;
+    setting_size = 4;
+    if (FLAGS_language > 0 && FLAGS_language < 16) {
+        xe::store_and_swap<uint32_t>(value, FLAGS_language);
+    } else {
+        xe::store_and_swap<uint32_t>(value, 0x00000001);  // English
+    }
+    break;
         case 0x000A:  // XCONFIG_USER_VIDEO_FLAGS
           setting_size = 4;
           xe::store_and_swap<uint32_t>(value, 0x00040000);
