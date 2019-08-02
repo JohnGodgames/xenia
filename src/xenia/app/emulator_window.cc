@@ -29,7 +29,7 @@
 #include "xenia/ui/imgui_dialog.h"
 #include "xenia/ui/imgui_drawer.h"
 
-DEFINE_bool(discord, false, "Enable Discord rich presence");
+DEFINE_bool(discord, true, "Enable Discord rich presence");
 
 namespace xe {
 namespace app {
