@@ -19,7 +19,7 @@
 
 #include "xenia/xbox.h"
 
-DECLARE_int32(signin_state);
+DECLARE_bool(signin_state);
 
 namespace xe {
 namespace kernel {
@@ -205,7 +205,7 @@ class UserProfile {
 
   uint64_t xuid() const { return xuid_; }
   std::string name() const { return name_; }
-  uint32_t signin_state() const { return FLAGS_signin_state; }
+  uint32_t signin_state() const { return !FLAGS_signin_state ? 0 : 1; };
 
   void AddSetting(std::unique_ptr<Setting> setting);
   Setting* GetSetting(uint32_t setting_id);
