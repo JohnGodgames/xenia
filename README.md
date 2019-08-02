@@ -1,6 +1,6 @@
 <p align="center">
-    <a href="https://github.com/xenia-project/xenia/tree/master/assets/icon">
-        <img height="120px" src="https://raw.githubusercontent.com/xenia-project/xenia/master/assets/icon/128.png" />
+    <a href="https://github.com/win98and95/xenia/tree/master-custom/assets/icon">
+        <img height="120px" src="https://raw.githubusercontent.com/win98and95/xenia/master-custom/assets/icon/128x128.png" />
     </a>
 </p>
 
@@ -23,8 +23,52 @@ Discussing illegal activities will get you banned.
 
 Buildbot | Status
 -------- | ------
-[Windows](https://ci.appveyor.com/project/benvanik/xenia/branch/master) | [![Build status](https://ci.appveyor.com/api/projects/status/ftqiy86kdfawyx3a/branch/master?svg=true)](https://ci.appveyor.com/project/benvanik/xenia/branch/master)
-[Linux](https://travis-ci.org/xenia-project/xenia) | [![Build status](https://travis-ci.org/xenia-project/xenia.svg?branch=master)](https://travis-ci.org/xenia-project/xenia)
+[Windows](https://dev.azure.com/windows98and95/xenia/_build) | [![Build Status](https://dev.azure.com/windows98and95/xenia/_apis/build/status/illusion98.xenia?branchName=d3d12_custom)](https://dev.azure.com/windows98and95/xenia/_build/latest?definitionId=1&branchName=d3d12_custom) [![Build status](https://ci.appveyor.com/api/projects/status/n3h76k1mik1a8hfo?svg=true)](https://ci.appveyor.com/project/win98and95/xenia)
+
+## Changes
+
+Use BT.709 as the default gamma
+
+Restored old icon
+
+New gflags added:
+
+* `--signin_state` - User profile signed in
+  * Values:
+    * `1` = Signed in *(default)*
+    * `0` = Signed out
+
+* `--license_mask` - Set license for XBLA games.
+  * Values:
+    * `0` = Trial/demo *(default)*
+    * `1` = Activated/full
+
+* `--language` - Changes language
+  <details><summary>Values (click to expand list)</summary>
+  <p>
+
+  * `1` = ENGLISH *(default)*
+  * `2` = JAPANESE
+  * `3` = GERMAN
+  * `4` = FRENCH
+  * `5` = SPANISH
+  * `6` = ITALIAN
+  * `7` = KOREAN
+  * `8` = TCHINESE
+  * `9`= PORTUGUESE
+  * `10` = SCHINESE
+  * `11` = TCHINESE
+  * `12` = POLISH
+  * `13` = RUSSIAN
+  * `14` = CZECH
+  * `15` = DUTCH
+  * `16` = NORWEGIAN
+  </p>
+  </details>
+
+Thanks to [theTwist84](https://github.com/theTwist84) and [Prism019](https://github.com/Prism019) for the help!
+
+## Compatibility
 
 Quite a few real games run. Quite a few don't.
 See the [Game compatibility list](https://github.com/xenia-project/game-compatibility/issues)
@@ -95,6 +139,5 @@ For more see the main [frequently asked questions](https://xenia.jp/faq/) page.
 
 ### Can I get an exe?
 
-[d3d12 (D3D12)](https://ci.appveyor.com/api/projects/benvanik/xenia/artifacts/xenia-d3d12.zip?branch=d3d12&job=Configuration%3A%20Release&pr=false)
-
-[Master (Vulkan)](https://ci.appveyor.com/api/projects/benvanik/xenia/artifacts/xenia-master.zip?branch=master&job=Configuration%3A%20Release&pr=false)
+Check [AppVeyor's artifacts](https://ci.appveyor.com/project/win98and95/xenia/history) to see
+what's there.
