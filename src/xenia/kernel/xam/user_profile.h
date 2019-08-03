@@ -203,7 +203,7 @@ class UserProfile {
 
   uint64_t xuid() const { return xuid_; }
   std::string name() const { return name_; }
-  uint32_t signin_state() const { return cvars::signin_state ? 0 : 1; };
+  uint32_t signin_state() const { return cvars::signin_state ? 1 : 0; };
 
   void AddSetting(std::unique_ptr<Setting> setting);
   Setting* GetSetting(uint32_t setting_id);
