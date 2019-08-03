@@ -10,6 +10,7 @@
 #include "third_party/imgui/imgui.h"
 #include "xenia/base/logging.h"
 #include "xenia/emulator.h"
+#include "xenia/kernel/kernel_flags.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/kernel/xam/xam_private.h"
@@ -119,7 +120,7 @@ dword_result_t XamShowMessageBoxUI(dword_t user_index, lpwstring_t title_ptr,
   // Broadcast XN_SYS_UI = true
   kernel_state()->BroadcastNotification(0x9, true);
 
-  if (!FLAGS_headless) {
+  if (cvars::headless) {
     ++xam_dialogs_shown_;
     auto display_window = kernel_state()->emulator()->display_window();
     display_window->loop()->PostSynchronous([&]() {
@@ -281,7 +282,7 @@ dword_result_t XamShowKeyboardUI(dword_t user_index, dword_t flags,
   // Broadcast XN_SYS_UI = true
   kernel_state()->BroadcastNotification(0x9, true);
 
-  if (FLAGS_headless) {
+  if (cvars::headless) {
     // Redirect default_text back into the buffer.
     std::memset(buffer, 0, buffer_length * 2);
     if (default_text) {
@@ -417,7 +418,7 @@ dword_result_t XamShowDeviceSelectorUI(dword_t user_index, dword_t content_type,
 DECLARE_XAM_EXPORT1(XamShowDeviceSelectorUI, kUI, kImplemented);
 
 void XamShowDirtyDiscErrorUI(dword_t user_index) {
-  if (FLAGS_headless) {
+  if (cvars::headless) {
     assert_always();
     exit(1);
     return;

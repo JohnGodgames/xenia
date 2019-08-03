@@ -9,8 +9,6 @@
 
 #include "xenia/kernel/kernel_state.h"
 
-#include <gflags/gflags.h>
-
 #include <string>
 
 #include "xenia/base/assert.h"
@@ -29,10 +27,10 @@
 #include "xenia/kernel/xobject.h"
 #include "xenia/kernel/xthread.h"
 
-DEFINE_bool(headless, false,
-            "Don't display any UI, using defaults for prompts as needed.");
+/*DEFINE_bool(headless, false,
+            "Don't display any UI, using defaults for prompts as needed.");*/
 
-DEFINE_int32(language, 1, "Language, valid  1-15");
+DEFINE_int32(language, 1, "Language, valid  1-15", "Kernel");
 namespace xe {
 namespace kernel {
 

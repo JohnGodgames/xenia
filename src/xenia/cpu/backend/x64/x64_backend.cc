@@ -11,8 +11,8 @@
 
 #include <stddef.h>
 
-#include "third_party/capstone/include/capstone.h"
-#include "third_party/capstone/include/x86.h"
+#include "third_party/capstone/include/capstone/capstone.h"
+#include "third_party/capstone/include/capstone/x86.h"
 
 #include "xenia/base/exception_handler.h"
 #include "xenia/base/logging.h"
@@ -28,7 +28,8 @@
 
 DEFINE_bool(
     enable_haswell_instructions, true,
-    "Uses the AVX2/FMA/etc instructions on Haswell processors, if available.");
+    "Uses the AVX2/FMA/etc instructions on Haswell processors, if available.",
+    "CPU");
 
 namespace xe {
 namespace cpu {
@@ -83,7 +84,7 @@ bool X64Backend::Initialize(Processor* processor) {
   }
 
   // Need movbe to do advanced LOAD/STORE tricks.
-  if (FLAGS_enable_haswell_instructions) {
+  if (cvars::enable_haswell_instructions) {
     machine_info_.supports_extended_load_store =
         cpu.has(Xbyak::util::Cpu::tMOVBE);
   } else {
