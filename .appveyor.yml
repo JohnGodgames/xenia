@@ -67,7 +67,6 @@ platform: Windows
 # build Configuration, i.e. Debug, Release, etc.
 configuration:
   - Release
-  - Checked
 
 #build:
 #  parallel: true                  # enable MSBuild parallel builds
@@ -83,13 +82,14 @@ configuration:
 
 # scripts to run after build
 after_build:
-  - 7z a xenia-%appveyor_repo_branch%.zip LICENSE %APPVEYOR_BUILD_FOLDER%\build\bin\%PLATFORM%\%CONFIGURATION%\xenia.exe %APPVEYOR_BUILD_FOLDER%\build\bin\%PLATFORM%\%CONFIGURATION%\xenia.pdb
-  - 7z a xenia-vfs-dump-%appveyor_repo_branch%.zip LICENSE %APPVEYOR_BUILD_FOLDER%\build\bin\%PLATFORM%\%CONFIGURATION%\xenia-vfs-dump.exe %APPVEYOR_BUILD_FOLDER%\build\bin\%PLATFORM%\%CONFIGURATION%\xenia-vfs-dump.pdb
+  - 7z a xenia-%appveyor_repo_branch%.zip LICENSE %APPVEYOR_BUILD_FOLDER%\build\bin\%PLATFORM%\%CONFIGURATION%\xenia.exe 
+  - 7z a xenia-vfs-dump-%appveyor_repo_branch%.zip LICENSE %APPVEYOR_BUILD_FOLDER%\build\bin\%PLATFORM%\%CONFIGURATION%\xenia-vfs-dump.exe
 
 # to run your custom scripts instead of automatic MSBuild
 # We also compile the tests here instead of later on.
 build_script:
-  - cmd: xb.bat build --config=%CONFIGURATION% --target=src\xenia-app --target=tests\xenia-cpu-ppc-tests --target=src\xenia-vfs-dump
+  - cmd: git checkout %appveyor_repo_branch%
+  - cmd: xb.bat build --config=%CONFIGURATION% --target=src\xenia-app --target=src\xenia-vfs-dump
 
 # to disable automatic builds
 #build: off
@@ -107,8 +107,8 @@ before_test:
 after_test:
 
 # to run your custom scripts instead of automatic tests
-test_script:
-  - cmd: xb.bat test --config=%CONFIGURATION% --no_build
+#test_script:
+#  - cmd: xb.bat test --config=%CONFIGURATION% --no_build
 
 # to disable automatic tests
 #test: off
