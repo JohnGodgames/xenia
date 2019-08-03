@@ -57,8 +57,8 @@ X_STATUS xeExGetXConfigSetting(uint16_t category, uint16_t setting,
           break;
         case 0x0009:  // XCONFIG_USER_LANGUAGE
     setting_size = 4;
-    if (FLAGS_language > 0 && FLAGS_language < 16) {
-        xe::store_and_swap<uint32_t>(value, FLAGS_language);
+    if (cvars::language > 0 && cvars::language < 16) {
+        xe::store_and_swap<uint32_t>(value, cvars::language);
     } else {
         xe::store_and_swap<uint32_t>(value, 0x00000001);  // English
     }
