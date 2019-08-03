@@ -139,5 +139,4 @@ For more see the main [frequently asked questions](https://xenia.jp/faq/) page.
 
 ### Can I get an exe?
 
-Check [AppVeyor's artifacts](https://ci.appveyor.com/project/win98and95/xenia/history) to see
-what's there.
+[Latest master revision at AppVeyor](https://ci.appveyor.com/api/projects/benvanik/xenia/artifacts/xenia-master.zip?branch=master&job=Configuration%3A%20Release&pr=false)
