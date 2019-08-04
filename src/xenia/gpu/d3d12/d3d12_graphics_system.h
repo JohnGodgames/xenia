@@ -26,6 +26,8 @@ class D3D12GraphicsSystem : public GraphicsSystem {
   D3D12GraphicsSystem();
   ~D3D12GraphicsSystem() override;
 
+  static bool IsAvailable();
+
   std::wstring name() const override;
 
   X_STATUS Setup(cpu::Processor* processor, kernel::KernelState* kernel_state,
