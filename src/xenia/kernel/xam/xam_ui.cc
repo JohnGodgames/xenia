@@ -14,7 +14,6 @@
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/kernel/xam/xam_private.h"
-#include "xenia/kernel/xthread.h"
 #include "xenia/ui/imgui_dialog.h"
 #include "xenia/ui/window.h"
 #include "xenia/xbox.h"
@@ -112,17 +111,13 @@ dword_result_t XamShowMessageBoxUI(dword_t user_index, lpwstring_t title_ptr,
     buttons.push_back(button);
   }
 
-  // Set overlapped result to X_ERROR_IO_PENDING
-  if (overlapped) {
-    XOverlappedSetResult((void*)overlapped.host_address(), X_ERROR_IO_PENDING);
-  }
-
-  // Broadcast XN_SYS_UI = true
-  kernel_state()->BroadcastNotification(0x9, true);
-
+  uint32_t chosen_button;
   if (cvars::headless) {
-    ++xam_dialogs_shown_;
+    // Auto-pick the focused button.
+    chosen_button = active_button;
+  } else {
     auto display_window = kernel_state()->emulator()->display_window();
+    xe::threading::Fence fence;
     display_window->loop()->PostSynchronous([&]() {
       // TODO(benvanik): setup icon states.
       switch (flags & 0xF) {
@@ -139,59 +134,22 @@ dword_result_t XamShowMessageBoxUI(dword_t user_index, lpwstring_t title_ptr,
           // config.pszMainIcon = TD_INFORMATION_ICON;
           break;
       }
-
-      auto chosen_button = new uint32_t();
-      auto fence = new xe::threading::Fence();
       (new MessageBoxDialog(display_window, title, text, buttons, active_button,
-                            chosen_button))
-          ->Then(fence);
-
-      // The function to be run once dialog has finished
-      auto ui_fn = [fence, result_ptr, chosen_button, overlapped]() {
-        fence->Wait();
-        delete fence;
-        --xam_dialogs_shown_;
-
-        *result_ptr = *chosen_button;
-        delete chosen_button;
-
-        if (overlapped) {
-          // TODO: this will set overlapped's context to ui_threads thread
-          // ID, is that a good idea?
-          kernel_state()->CompleteOverlappedImmediate(overlapped,
-                                                      X_ERROR_SUCCESS);
-        }
-
-        // Broadcast XN_SYS_UI = false
-        kernel_state()->BroadcastNotification(0x9, false);
-
-        return 0;
-      };
-
-      // Create a host thread to run the function above
-      auto ui_thread = kernel::object_ref<kernel::XHostThread>(
-          new kernel::XHostThread(kernel_state(), 128 * 1024, 0, ui_fn));
-      ui_thread->set_name("XamShowMessageBoxUI Thread");
-      ui_thread->Create();
+                            &chosen_button))
+          ->Then(&fence);
     });
-  } else {
-    // Auto-pick the focused button.
-    *result_ptr = (uint32_t)active_button;
-
-    if (overlapped) {
-      kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
-    }
-
-    // Broadcast XN_SYS_UI = false
-    kernel_state()->BroadcastNotification(0x9, false);
+    ++xam_dialogs_shown_;
+    fence.Wait();
+    --xam_dialogs_shown_;
   }
+  *result_ptr = chosen_button;
 
-  uint32_t result = X_ERROR_SUCCESS;
   if (overlapped) {
-    result = X_ERROR_IO_PENDING;
+    kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
+    return X_ERROR_IO_PENDING;
+  } else {
+    return X_ERROR_SUCCESS;
   }
-
-  return result;
 }
 DECLARE_XAM_EXPORT1(XamShowMessageBoxUI, kUI, kImplemented);
 
@@ -270,17 +228,9 @@ dword_result_t XamShowKeyboardUI(dword_t user_index, dword_t flags,
                                  lpwstring_t description, lpwstring_t buffer,
                                  dword_t buffer_length,
                                  pointer_t<XAM_OVERLAPPED> overlapped) {
-  // overlapped should always be set, xam seems to check for this specifically
-  if (!overlapped) {
-    assert_always();
+  if (!buffer) {
     return X_ERROR_INVALID_PARAMETER;
   }
-
-  // Set overlapped result to X_ERROR_IO_PENDING
-  XOverlappedSetResult((void*)overlapped.host_address(), X_ERROR_IO_PENDING);
-
-  // Broadcast XN_SYS_UI = true
-  kernel_state()->BroadcastNotification(0x9, true);
 
   if (cvars::headless) {
     // Redirect default_text back into the buffer.
@@ -289,72 +239,42 @@ dword_result_t XamShowKeyboardUI(dword_t user_index, dword_t flags,
       xe::store_and_swap<std::wstring>(buffer, default_text.value());
     }
 
-    // TODO: we should probably setup a thread to complete the overlapped a few
-    // seconds after this returns, to simulate the user taking a few seconds to
-    // enter text
-    kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
-
-    // Broadcast XN_SYS_UI = false
-    kernel_state()->BroadcastNotification(0x9, false);
-
-    return X_ERROR_IO_PENDING;
+    if (overlapped) {
+      kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
+      return X_ERROR_IO_PENDING;
+    } else {
+      return X_ERROR_SUCCESS;
+    }
   }
 
-  // Instead of waiting for the keyboard dialog to finish before returning,
-  // we'll create a thread that'll wait for it instead, and return immediately.
-  // This way we can let the game run any "code-to-run-while-UI-is-active" code
-  // that it might need to.
+  std::wstring out_text;
 
-  ++xam_dialogs_shown_;
   auto display_window = kernel_state()->emulator()->display_window();
+  xe::threading::Fence fence;
   display_window->loop()->PostSynchronous([&]() {
-    auto out_text = new std::wstring();
-    auto fence = new xe::threading::Fence();
-
-    // Create the dialog
     (new KeyboardInputDialog(display_window, title ? title.value() : L"",
                              description ? description.value() : L"",
                              default_text ? default_text.value() : L"",
-                             out_text, buffer_length))
-        ->Then(fence);
-
-    // The function to be run once dialog has finished
-    auto ui_fn = [fence, out_text, buffer, buffer_length, overlapped]() {
-      fence->Wait();
-      delete fence;
-      --xam_dialogs_shown_;
-
-      // Zero the output buffer.
-      std::memset(buffer, 0, buffer_length * 2);
-
-      // Copy the string.
-      size_t size = buffer_length;
-      if (size > out_text->size()) {
-        size = out_text->size();
-      }
-
-      xe::copy_and_swap((wchar_t*)buffer.host_address(), out_text->c_str(),
-                        size);
-      delete out_text;
-
-      // TODO: this will set overlapped's context to ui_threads thread ID
-      // is that a good idea?
-      kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
-
-      // Broadcast XN_SYS_UI = false
-      kernel_state()->BroadcastNotification(0x9, false);
-
-      return 0;
-    };
-
-    // Create a host thread to run the function above
-    auto ui_thread = kernel::object_ref<kernel::XHostThread>(
-        new kernel::XHostThread(kernel_state(), 128 * 1024, 0, ui_fn));
-    ui_thread->set_name("XamShowKeyboardUI Thread");
-    ui_thread->Create();
+                             &out_text, buffer_length))
+        ->Then(&fence);
   });
+  ++xam_dialogs_shown_;
+  fence.Wait();
+  --xam_dialogs_shown_;
 
-  return X_ERROR_IO_PENDING;
+  // Zero the output buffer.
+  std::memset(buffer, 0, buffer_length * 2);
+
+  // Truncate the string.
+  out_text = out_text.substr(0, buffer_length - 1);
+  xe::store_and_swap<std::wstring>(buffer, out_text);
+
+  if (overlapped) {
+    kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
+    return X_ERROR_IO_PENDING;
+  } else {
+    return X_ERROR_SUCCESS;
+  }
 }
 DECLARE_XAM_EXPORT1(XamShowKeyboardUI, kUI, kImplemented);
 
@@ -363,55 +283,27 @@ dword_result_t XamShowDeviceSelectorUI(dword_t user_index, dword_t content_type,
                                        qword_t total_requested,
                                        lpdword_t device_id_ptr,
                                        pointer_t<XAM_OVERLAPPED> overlapped) {
-  // Set overlapped to X_ERROR_IO_PENDING
-  if (overlapped) {
-    XOverlappedSetResult((void*)overlapped.host_address(), X_ERROR_IO_PENDING);
+  // NOTE: 0xF00D0000 magic from xam_content.cc
+  switch (content_type) {
+    case 1:  // save game
+      *device_id_ptr = 0xF00D0000 | 0x0001;
+      break;
+    case 2:  // marketplace
+      *device_id_ptr = 0xF00D0000 | 0x0002;
+      break;
+    case 3:  // title/publisher update?
+      *device_id_ptr = 0xF00D0000 | 0x0003;
+      break;
+    default:
+      assert_unhandled_case(content_type);
+      *device_id_ptr = 0xF00D0000 | 0x0001;
+      break;
   }
 
-  // Broadcast XN_SYS_UI = true
-  kernel_state()->BroadcastNotification(0x9, true);
-
-  auto ui_fn = [content_type, device_id_ptr, overlapped]() {
-    // Sleep for 1.5 seconds, act like user is making a choice
-    xe::threading::Sleep(std::chrono::milliseconds(1500));
-
-    // NOTE: 0xF00D0000 magic from xam_content.cc
-    switch (content_type) {
-      case 1:  // save game
-        *device_id_ptr = 0xF00D0000 | 0x0001;
-        break;
-      case 2:  // marketplace
-        *device_id_ptr = 0xF00D0000 | 0x0002;
-        break;
-      case 3:  // title/publisher update?
-        *device_id_ptr = 0xF00D0000 | 0x0003;
-        break;
-      default:
-        assert_unhandled_case(content_type);
-        *device_id_ptr = 0xF00D0000 | 0x0001;
-        break;
-    }
-
-    if (overlapped) {
-      kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
-    }
-
-    // Broadcast XN_SYS_UI = false
-    kernel_state()->BroadcastNotification(0x9, false);
-
-    return 0;
-  };
-
   if (overlapped) {
-    // Create a host thread to run the function above
-    auto ui_thread = kernel::object_ref<kernel::XHostThread>(
-        new kernel::XHostThread(kernel_state(), 128 * 1024, 0, ui_fn));
-    ui_thread->set_name("XamShowDeviceSelectorUI Thread");
-    ui_thread->Create();
-
+    kernel_state()->CompleteOverlappedImmediate(overlapped, X_ERROR_SUCCESS);
     return X_ERROR_IO_PENDING;
   } else {
-    ui_fn();
     return X_ERROR_SUCCESS;
   }
 }
