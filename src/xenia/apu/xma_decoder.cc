@@ -49,7 +49,7 @@ extern "C" {
 // using the XMA* functions.
 
 DEFINE_bool(libav_verbose, false, "Verbose libav output (debug and above)",
-            "Audio");
+            "APU");
 
 namespace xe {
 namespace apu {
@@ -175,15 +175,20 @@ void XmaDecoder::WorkerThreadMain() {
 
 void XmaDecoder::Shutdown() {
   worker_running_ = false;
-  work_event_->Set();
+
+  if (work_event_) {
+    work_event_->Set();
+  }
 
   if (paused_) {
     Resume();
   }
 
-  // Wait for work thread.
-  xe::threading::Wait(worker_thread_->thread(), false);
-  worker_thread_.reset();
+  if (worker_thread_) {
+    // Wait for work thread.
+    xe::threading::Wait(worker_thread_->thread(), false);
+    worker_thread_.reset();
+  }
 
   if (context_data_first_ptr_) {
     memory()->SystemHeapFree(context_data_first_ptr_);

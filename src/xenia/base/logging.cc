@@ -37,7 +37,7 @@ DEFINE_string(
     log_file, "",
     "Logs are written to the given file (specify stdout for command line)",
     "Logging");
-DEFINE_bool(log_debugprint, false, "Dump the log to DebugPrint.", "Logging");
+DEFINE_bool(log_to_debugprint, false, "Dump the log to DebugPrint.", "Logging");
 DEFINE_bool(flush_log, true, "Flush log file after each log line batch.",
             "Logging");
 DEFINE_int32(
@@ -151,7 +151,7 @@ class Logger {
       fwrite(buf, 1, size, file_);
     }
 
-    if (cvars::log_debugprint) {
+    if (cvars::log_to_debugprint) {
       debugging::DebugPrint("%.*s", size, buf);
     }
   }
@@ -264,8 +264,8 @@ void LogLineFormat(LogLevel log_level, const char prefix_char, const char* fmt,
 
   va_list args;
   va_start(args, fmt);
-  int chars_written = vsnprintf(log_format_buffer_.data(),
-                                log_format_buffer_.capacity(), fmt, args);
+  int chars_written = std::vsnprintf(log_format_buffer_.data(),
+                                     log_format_buffer_.capacity(), fmt, args);
   va_end(args);
   if (chars_written >= 0 && chars_written < log_format_buffer_.capacity()) {
     logger_->AppendLine(xe::threading::current_thread_id(), log_level,
@@ -282,8 +282,8 @@ void LogLineVarargs(LogLevel log_level, const char prefix_char, const char* fmt,
     return;
   }
 
-  int chars_written = vsnprintf(log_format_buffer_.data(),
-                                log_format_buffer_.capacity(), fmt, args);
+  int chars_written = std::vsnprintf(log_format_buffer_.data(),
+                                     log_format_buffer_.capacity(), fmt, args);
   if (chars_written < 0) {
     return;
   }
@@ -324,17 +324,38 @@ void FatalError(const char* fmt, ...) {
 #if XE_PLATFORM_WIN32
   if (!xe::has_console_attached()) {
     va_start(args, fmt);
-    vsnprintf(log_format_buffer_.data(), log_format_buffer_.capacity(), fmt,
-              args);
+    std::vsnprintf(log_format_buffer_.data(), log_format_buffer_.capacity(),
+                   fmt, args);
     va_end(args);
     MessageBoxA(NULL, log_format_buffer_.data(), "Xenia Error",
                 MB_OK | MB_ICONERROR | MB_APPLMODAL | MB_SETFOREGROUND);
   }
 #endif  // WIN32
   ShutdownLogging();
-  exit(1);
+  std::exit(1);
+}
+
+void FatalError(const wchar_t* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  std::vswprintf((wchar_t*)log_format_buffer_.data(),
+                 log_format_buffer_.capacity() >> 1, fmt, args);
+  va_end(args);
+
+  LogLine(LogLevel::Error, 'X',
+          xe::to_string((wchar_t*)log_format_buffer_.data()));
+
+#if XE_PLATFORM_WIN32
+  if (!xe::has_console_attached()) {
+    MessageBoxW(NULL, (wchar_t*)log_format_buffer_.data(), L"Xenia Error",
+                MB_OK | MB_ICONERROR | MB_APPLMODAL | MB_SETFOREGROUND);
+  }
+#endif  // WIN32
+  ShutdownLogging();
+  std::exit(1);
 }
 
 void FatalError(const std::string& str) { FatalError(str.c_str()); }
+void FatalError(const std::wstring& str) { FatalError(str.c_str()); }
 
 }  // namespace xe
