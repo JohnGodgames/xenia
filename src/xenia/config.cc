@@ -5,17 +5,19 @@
 #include "xenia/base/logging.h"
 #include "xenia/base/string.h"
 
-namespace cpptoml {
-inline std::shared_ptr<table> parse_file(const std::wstring& filename) {
+std::shared_ptr<cpptoml::table> ParseFile(const std::wstring& filename) {
+#if XE_PLATFORM_WIN32
   std::ifstream file(filename);
+#else
+  std::ifstream file(xe::to_string(filename));
+#endif
   if (!file.is_open()) {
-    throw parse_exception(xe::to_string(filename) +
-                          " could not be opened for parsing");
+    throw cpptoml::parse_exception(xe::to_string(filename) +
+                                   " could not be opened for parsing");
   }
-  parser p(file);
+  cpptoml::parser p(file);
   return p.parse();
 }
-}  // namespace cpptoml
 
 CmdVar(config, "", "Specifies the target config to load.");
 namespace config {
@@ -32,7 +34,7 @@ bool sortCvar(cvar::IConfigVar* a, cvar::IConfigVar* b) {
 
 std::shared_ptr<cpptoml::table> ParseConfig(const std::wstring& config_path) {
   try {
-    return cpptoml::parse_file(config_path);
+    return ParseFile(config_path);
   } catch (cpptoml::parse_exception e) {
     xe::FatalError(L"Failed to parse config file '%s':\n\n%s",
                    config_path.c_str(), xe::to_wstring(e.what()).c_str());
@@ -93,12 +95,13 @@ void SaveConfig() {
       auto lines = xe::split_string(value, "\n");
       auto first_it = lines.cbegin();
       output << xe::format_string("%s = %s\n", config_var->name().c_str(),
-                                  *first_it);
+                                  (*first_it).c_str());
       auto last_it = std::prev(lines.cend());
       for (auto it = std::next(first_it); it != last_it; ++it) {
-        output << *it << "\n";
+        output << (*it).c_str() << "\n";
       }
-      output << std::left << std::setw(40) << std::setfill(' ') << *last_it;
+      output << std::left << std::setw(40) << std::setfill(' ')
+             << (*last_it).c_str();
     }
     output << xe::format_string("\t# %s\n", config_var->description().c_str());
   }
@@ -115,7 +118,11 @@ void SaveConfig() {
   // save the config file
   xe::filesystem::CreateParentFolder(config_path);
   std::ofstream file;
+#if XE_PLATFORM_WIN32
   file.open(config_path, std::ios::out | std::ios::trunc);
+#else
+  file.open(xe::to_string(config_path), std::ios::out | std::ios::trunc);
+#endif
   file << output.str();
   file.close();
 }
