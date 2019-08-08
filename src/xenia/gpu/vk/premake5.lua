@@ -2,15 +2,15 @@ project_root = "../../../.."
 include(project_root.."/tools/build")
 
 group("src")
-project("xenia-gpu-d3d12")
-  uuid("c057eae4-e7bb-4113-9a69-1fe07b735c49")
+project("xenia-gpu-vk")
+  uuid("66c9afbb-798a-405d-80a1-7bda473e700d")
   kind("StaticLib")
   language("C++")
   links({
     "xenia-base",
     "xenia-gpu",
     "xenia-ui",
-    "xenia-ui-d3d12",
+    "xenia-ui-vk",
     "xxhash",
   })
   local_platform_files()
