@@ -38,12 +38,12 @@ New gflags added:
     * `1` = Signed in *(default)*
     * `0` = Signed out
 
-* `--license_mask` - Set license for XBLA games.
+* `--content_mask` - Set license for XBLA games.
   * Values:
     * `0` = Trial/demo *(default)*
     * `1` = Activated/full
 
-* `--language` - Changes language
+* `--language` - Changes kernel language 
   <details><summary>Values (click to expand list)</summary>
   <p>
 

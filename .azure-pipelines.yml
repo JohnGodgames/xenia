@@ -31,7 +31,7 @@ jobs:
   - script: xb gentests && xb test --config=$(configuration) --no_build && copy xenia-cpu-ppc-test.log $(Build.ArtifactStagingDirectory)
     displayName: 'xb gentests && xb test --config=$(configuration) --no_build && copy xenia-cpu-ppc-test.log $(Build.ArtifactStagingDirectory)'
 
-  - script: cd build\bin\Windows\$(configuration) && 7z a $(Build.ArtifactStagingDirectory)\xenia-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE xenia.exe xenia.pdb && 7z a $(Build.ArtifactStagingDirectory)\xenia-vfs-dump-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE xenia-vfs-dump.exe xenia-vfs-dump.pdb
+  - script: cd build\bin\Windows\$(configuration) && 7z a $(Build.ArtifactStagingDirectory)\xenia-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE ..\..\..\..\readme.txt xenia.exe xenia.pdb && 7z a $(Build.ArtifactStagingDirectory)\xenia-vfs-dump-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE xenia-vfs-dump.exe xenia-vfs-dump.pdb
     displayName: 'Create xenia-$(Build.SourceBranchName).zip & xenia-vfs-dump-$(Build.SourceBranchName).zip'
 
   - publish: $(Build.ArtifactStagingDirectory)
