@@ -38,7 +38,7 @@ New gflags added:
     * `1` = Signed in *(default)*
     * `0` = Signed out
 
-* `--content_mask` - Set license for XBLA games.
+* `--license_mask` - Set license for XBLA games.
   * Values:
     * `0` = Trial/demo *(default)*
     * `1` = Activated/full

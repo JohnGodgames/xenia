@@ -25,6 +25,8 @@ MMIOHandler* MMIOHandler::global_handler_ = nullptr;
 
 std::unique_ptr<MMIOHandler> MMIOHandler::Install(
     uint8_t* virtual_membase, uint8_t* physical_membase, uint8_t* membase_end,
+    HostToGuestVirtual host_to_guest_virtual,
+    const void* host_to_guest_virtual_context,
     AccessViolationCallback access_violation_callback,
     void* access_violation_callback_context) {
   // There can be only one handler at a time.
@@ -34,7 +36,8 @@ std::unique_ptr<MMIOHandler> MMIOHandler::Install(
   }
 
   auto handler = std::unique_ptr<MMIOHandler>(new MMIOHandler(
-      virtual_membase, physical_membase, membase_end, access_violation_callback,
+      virtual_membase, physical_membase, membase_end, host_to_guest_virtual,
+      host_to_guest_virtual_context, access_violation_callback,
       access_violation_callback_context));
 
   // Install the exception handler directed at the MMIOHandler.
@@ -46,11 +49,15 @@ std::unique_ptr<MMIOHandler> MMIOHandler::Install(
 
 MMIOHandler::MMIOHandler(uint8_t* virtual_membase, uint8_t* physical_membase,
                          uint8_t* membase_end,
+                         HostToGuestVirtual host_to_guest_virtual,
+                         const void* host_to_guest_virtual_context,
                          AccessViolationCallback access_violation_callback,
                          void* access_violation_callback_context)
     : virtual_membase_(virtual_membase),
       physical_membase_(physical_membase),
       memory_end_(membase_end),
+      host_to_guest_virtual_(host_to_guest_virtual),
+      host_to_guest_virtual_context_(host_to_guest_virtual_context),
       access_violation_callback_(access_violation_callback),
       access_violation_callback_context_(access_violation_callback_context) {}
 
@@ -279,14 +286,16 @@ bool MMIOHandler::ExceptionCallback(Exception* ex) {
     // Quick kill anything outside our mapping.
     return false;
   }
+  void* fault_host_address = reinterpret_cast<void*>(ex->fault_address());
 
   // Access violations are pretty rare, so we can do a linear search here.
   // Only check if in the virtual range, as we only support virtual ranges.
   const MMIORange* range = nullptr;
   if (ex->fault_address() < uint64_t(physical_membase_)) {
+    uint32_t fault_virtual_address = host_to_guest_virtual_(
+        host_to_guest_virtual_context_, fault_host_address);
     for (const auto& test_range : mapped_ranges_) {
-      if ((static_cast<uint32_t>(ex->fault_address()) & test_range.mask) ==
-          test_range.address) {
+      if ((fault_virtual_address & test_range.mask) == test_range.address) {
         // Address is within the range of this mapping.
         range = &test_range;
         break;
@@ -294,27 +303,13 @@ bool MMIOHandler::ExceptionCallback(Exception* ex) {
     }
   }
   if (!range) {
-    auto fault_address = reinterpret_cast<uint8_t*>(ex->fault_address());
-    uint32_t guest_address, guest_heap_address;
-    if (fault_address >= virtual_membase_ &&
-        fault_address < physical_membase_) {
-      // Faulting on a virtual address.
-      guest_address = static_cast<uint32_t>(ex->fault_address()) & 0x1FFFFFFF;
-      guest_heap_address =
-          static_cast<uint32_t>(ex->fault_address()) & ~0x1FFFFFFF;
-    } else {
-      // Faulting on a physical address.
-      guest_address = static_cast<uint32_t>(ex->fault_address());
-      guest_heap_address = 0;
-    }
-
     // Recheck if the pages are still protected (race condition - another thread
     // clears the writewatch we just hit).
     // Do this under the lock so we don't introduce another race condition.
     auto lock = global_critical_region_.Acquire();
     memory::PageAccess cur_access;
     size_t page_length = memory::page_size();
-    memory::QueryProtect((void*)fault_address, page_length, cur_access);
+    memory::QueryProtect(fault_host_address, page_length, cur_access);
     if (cur_access != memory::PageAccess::kReadOnly &&
         cur_access != memory::PageAccess::kNoAccess) {
       // Another thread has cleared this write watch. Abort.
@@ -327,10 +322,10 @@ bool MMIOHandler::ExceptionCallback(Exception* ex) {
       switch (ex->access_violation_operation()) {
         case Exception::AccessViolationOperation::kRead:
           return access_violation_callback_(access_violation_callback_context_,
-                                            size_t(ex->fault_address()), false);
+                                            fault_host_address, false);
         case Exception::AccessViolationOperation::kWrite:
           return access_violation_callback_(access_violation_callback_context_,
-                                            size_t(ex->fault_address()), true);
+                                            fault_host_address, true);
         default:
           // Data Execution Prevention or something else uninteresting.
           break;

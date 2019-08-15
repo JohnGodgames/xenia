@@ -11,6 +11,7 @@
 #define XENIA_UI_VK_VULKAN_CONTEXT_H_
 
 #include <memory>
+#include <vector>
 
 #include "xenia/ui/graphics_context.h"
 #include "xenia/ui/vk/vulkan_immediate_drawer.h"
@@ -53,6 +54,12 @@ class VulkanContext : public GraphicsContext {
   uint32_t GetCurrentQueueFrame() { return current_queue_frame_; }
   void AwaitAllFramesCompletion();
 
+  const VkSurfaceFormatKHR& GetSurfaceFormat() const { return surface_format_; }
+
+  VkCommandBuffer GetPresentCommandBuffer() const {
+    return present_command_buffers_[current_queue_frame_];
+  }
+
  private:
   friend class VulkanProvider;
 
@@ -61,6 +68,8 @@ class VulkanContext : public GraphicsContext {
  private:
   bool Initialize();
   void Shutdown();
+
+  void DestroySwapchainImages();
 
   bool initialized_fully_ = false;
 
@@ -75,11 +84,30 @@ class VulkanContext : public GraphicsContext {
   uint32_t surface_min_image_count_ = 3;
   VkSurfaceFormatKHR surface_format_ = {VK_FORMAT_R8G8B8A8_UNORM,
                                         VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-  VkPresentModeKHR surface_present_mode_ = VK_PRESENT_MODE_FIFO_KHR;
+  VkSurfaceTransformFlagBitsKHR surface_transform_ =
+      VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
   VkCompositeAlphaFlagBitsKHR surface_composite_alpha_ =
       VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  VkPresentModeKHR surface_present_mode_ = VK_PRESENT_MODE_FIFO_KHR;
+
+  VkSemaphore semaphore_present_complete_ = VK_NULL_HANDLE;
+  VkSemaphore semaphore_draw_complete_ = VK_NULL_HANDLE;
+
+  VkRenderPass present_render_pass_ = VK_NULL_HANDLE;
+  VkCommandPool present_command_pool_ = VK_NULL_HANDLE;
+  VkCommandBuffer present_command_buffers_[kQueuedFrames] = {};
 
   std::unique_ptr<VulkanImmediateDrawer> immediate_drawer_ = nullptr;
+
+  VkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
+  VkExtent2D swapchain_extent_ = {};
+  struct SwapchainImage {
+    VkImage image;
+    VkImageView image_view;
+    VkFramebuffer framebuffer;
+  };
+  std::vector<SwapchainImage> swapchain_images_;
+  uint32_t swapchain_acquired_image_index_ = 0;
 };
 
 }  // namespace vk

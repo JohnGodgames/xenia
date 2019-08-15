@@ -1,16 +1,11 @@
 Changes:
 Restored old icon
 New commands added
-1. XBLA License Mask. 
-Set license for XBLA titles. `content_mask`
-Values:
-    false = Trial/demo (default)
-    true = Activated/full
-2. User Profile.
+User Profile.
 Report that a user is signed in. `signin_state` Thanks to https://github.com/Prism019
     false = Not Signed in.
     true  = Signed in.
-3. User language.
+User language.
 Change kernel language on startup. Thanks to https://github.com/theTwist84
 Values:
     1 = ENGLISH (default)
