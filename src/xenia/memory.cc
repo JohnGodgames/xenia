@@ -168,9 +168,8 @@ bool Memory::Initialize() {
   // Prepare physical heaps.
   heaps_.physical.Initialize(this, physical_membase_, 0x00000000, 0x20000000,
                              4096);
-  // HACK: should be 64k, but with us overlaying A and E it needs to be 4.
   heaps_.vA0000000.Initialize(this, virtual_membase_, 0xA0000000, 0x20000000,
-                              4 * 1024, &heaps_.physical);
+                              64 * 1024, &heaps_.physical);
   heaps_.vC0000000.Initialize(this, virtual_membase_, 0xC0000000, 0x20000000,
                               16 * 1024 * 1024, &heaps_.physical);
   heaps_.vE0000000.Initialize(this, virtual_membase_, 0xE0000000, 0x1FD00000,
@@ -333,8 +332,7 @@ const BaseHeap* Memory::LookupHeap(uint32_t address) const {
 BaseHeap* Memory::LookupHeapByType(bool physical, uint32_t page_size) {
   if (physical) {
     if (page_size <= 4096) {
-      // HACK: should be vE0000000
-      return &heaps_.vA0000000;
+      return &heaps_.vE0000000;
     } else if (page_size <= 64 * 1024) {
       return &heaps_.vA0000000;
     } else {
@@ -509,7 +507,9 @@ uint32_t Memory::SystemHeapAlloc(uint32_t size, uint32_t alignment,
                                  uint32_t system_heap_flags) {
   // TODO(benvanik): lightweight pool.
   bool is_physical = !!(system_heap_flags & kSystemHeapPhysical);
-  auto heap = LookupHeapByType(is_physical, 4096);
+  auto heap = LookupHeapByType(
+      is_physical,
+      (system_heap_flags & kSystemHeapLargePages) ? (64 * 1024) : 4096);
   uint32_t address;
   if (!heap->Alloc(size, alignment,
                    kMemoryAllocationReserve | kMemoryAllocationCommit,
@@ -1304,7 +1304,7 @@ void PhysicalHeap::Initialize(Memory* memory, uint8_t* membase,
                               uint32_t heap_base, uint32_t heap_size,
                               uint32_t page_size, VirtualHeap* parent_heap) {
   uint32_t host_address_offset;
-  if (heap_base_ >= 0xE0000000 &&
+  if (heap_base >= 0xE0000000 &&
       xe::memory::allocation_granularity() > 0x1000) {
     host_address_offset = 0x1000;
   } else {
@@ -1340,23 +1340,20 @@ bool PhysicalHeap::Alloc(uint32_t size, uint32_t alignment,
   auto global_lock = global_critical_region_.Acquire();
 
   // Allocate from parent heap (gets our physical address in 0-512mb).
-  uint32_t parent_low_address = GetPhysicalAddress(heap_base_);
-  uint32_t parent_high_address = GetPhysicalAddress(heap_base_ + heap_size_);
+  uint32_t parent_heap_start = GetPhysicalAddress(heap_base_);
+  uint32_t parent_heap_end = GetPhysicalAddress(heap_base_ + heap_size_);
   uint32_t parent_address;
-  if (!parent_heap_->AllocRange(parent_low_address, parent_high_address, size,
+  if (!parent_heap_->AllocRange(parent_heap_start, parent_heap_end, size,
                                 alignment, allocation_type, protect, top_down,
                                 &parent_address)) {
     XELOGE(
         "PhysicalHeap::Alloc unable to alloc physical memory in parent heap");
     return false;
   }
-  if (heap_base_ >= 0xE0000000) {
-    parent_address -= 0x1000;
-  }
 
   // Given the address we've reserved in the parent heap, pin that here.
   // Shouldn't be possible for it to be allocated already.
-  uint32_t address = heap_base_ + parent_address;
+  uint32_t address = heap_base_ + parent_address - parent_heap_start;
   if (!BaseHeap::AllocFixed(address, size, alignment, allocation_type,
                             protect)) {
     XELOGE(
@@ -1388,13 +1385,11 @@ bool PhysicalHeap::AllocFixed(uint32_t base_address, uint32_t size,
         "PhysicalHeap::Alloc unable to alloc physical memory in parent heap");
     return false;
   }
-  if (heap_base_ >= 0xE0000000) {
-    parent_base_address -= 0x1000;
-  }
 
   // Given the address we've reserved in the parent heap, pin that here.
   // Shouldn't be possible for it to be allocated already.
-  uint32_t address = heap_base_ + parent_base_address;
+  uint32_t address =
+      heap_base_ + parent_base_address - GetPhysicalAddress(heap_base_);
   if (!BaseHeap::AllocFixed(address, size, alignment, allocation_type,
                             protect)) {
     XELOGE(
@@ -1431,13 +1426,11 @@ bool PhysicalHeap::AllocRange(uint32_t low_address, uint32_t high_address,
         "PhysicalHeap::Alloc unable to alloc physical memory in parent heap");
     return false;
   }
-  if (heap_base_ >= 0xE0000000) {
-    parent_address -= 0x1000;
-  }
 
   // Given the address we've reserved in the parent heap, pin that here.
   // Shouldn't be possible for it to be allocated already.
-  uint32_t address = heap_base_ + parent_address;
+  uint32_t address =
+      heap_base_ + parent_address - GetPhysicalAddress(heap_base_);
   if (!BaseHeap::AllocFixed(address, size, alignment, allocation_type,
                             protect)) {
     XELOGE(
@@ -1522,7 +1515,7 @@ void PhysicalHeap::WatchPhysicalWrite(uint32_t physical_address,
 
   // Protect the pages and mark them as watched. Don't mark non-writable pages
   // as watched, so true access violations can still occur there.
-  uint8_t* protect_base = TranslateRelative(0);
+  uint8_t* protect_base = membase_ + heap_base_;
   uint32_t protect_system_page_first = UINT32_MAX;
   for (uint32_t i = system_page_first; i <= system_page_last; ++i) {
     uint64_t page_bit = uint64_t(1) << (i & 63);
@@ -1680,7 +1673,7 @@ bool PhysicalHeap::TriggerWatches(uint32_t virtual_address, uint32_t length,
 
   // Unprotect ranges that need unprotection.
   if (unprotect) {
-    uint8_t* protect_base = TranslateRelative(0);
+    uint8_t* protect_base = membase_ + heap_base_;
     uint32_t unprotect_system_page_first = UINT32_MAX;
     for (uint32_t i = system_page_first; i <= system_page_last; ++i) {
       // Check if need to allow writing to this page.
