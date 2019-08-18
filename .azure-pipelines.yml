@@ -12,6 +12,20 @@ trigger:
     - README.md
     - .appveyor.yml
     - .travis.yml
+pr:
+  branches:
+    include:
+    - '*'
+    exclude:
+    - gh-pages
+  paths:
+    exclude:
+    - docs/*
+    - .github/*
+    - LICENSE
+    - README.md
+    - .appveyor.yml
+    - .travis.yml
 
 jobs:
 - job:
@@ -22,19 +36,20 @@ jobs:
       Release:
         configuration: Release
   steps:
-  - script: git config --global core.autocrlf input && xb setup
-    displayName: 'git config --global core.autocrlf input && xb setup'
+  - script: |
+      git config --global core.autocrlf input
+      xb setup
+    displayName: 'Setup'
 
-  - script: xb build --config=$(configuration) --target=src\xenia-app --target=tests\xenia-cpu-ppc-tests --target=src\xenia-vfs-dump
-    displayName: 'xb build --config=$(configuration)'
+  - script: xb build --config=$(configuration) --target=src\xenia-app --target=src\xenia-vfs-dump
+    displayName: 'Build $(configuration)'
 
-  - script: xb gentests && xb test --config=$(configuration) --no_build && copy xenia-cpu-ppc-test.log $(Build.ArtifactStagingDirectory)
-    displayName: 'xb gentests && xb test --config=$(configuration) --no_build && copy xenia-cpu-ppc-test.log $(Build.ArtifactStagingDirectory)'
-
-  - script: cd build\bin\Windows\$(configuration) && 7z a $(Build.ArtifactStagingDirectory)\xenia-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE ..\..\..\..\readme.txt xenia.exe xenia.pdb && 7z a $(Build.ArtifactStagingDirectory)\xenia-vfs-dump-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE xenia-vfs-dump.exe xenia-vfs-dump.pdb
-    displayName: 'Create xenia-$(Build.SourceBranchName).zip & xenia-vfs-dump-$(Build.SourceBranchName).zip'
+  - script: |
+      cd build\bin\Windows\$(configuration)
+      7z a $(Build.ArtifactStagingDirectory)\xenia-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE ..\..\..\..\README.md xenia.exe xenia.pdb
+      7z a $(Build.ArtifactStagingDirectory)\xenia-vfs-dump-$(Build.SourceBranchName).zip ..\..\..\..\LICENSE xenia-vfs-dump.exe xenia-vfs-dump.pdb
+    displayName: 'Create archives'
 
   - publish: $(Build.ArtifactStagingDirectory)
-    displayName: Publish artifacts
     artifact: $(configuration)
-    
+    displayName: Publish artifacts

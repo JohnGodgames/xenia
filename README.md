@@ -23,7 +23,7 @@ Discussing illegal activities will get you banned.
 
 Buildbot | Status
 -------- | ------
-[Windows](https://dev.azure.com/windows98and95/xenia/_build) | [![Build Status](https://dev.azure.com/windows98and95/xenia/_apis/build/status/illusion98.xenia?branchName=d3d12_custom)](https://dev.azure.com/windows98and95/xenia/_build/latest?definitionId=1&branchName=d3d12_custom) [![Build status](https://ci.appveyor.com/api/projects/status/n3h76k1mik1a8hfo?svg=true)](https://ci.appveyor.com/project/win98and95/xenia)
+[Windows](https://dev.azure.com/windows98and95/xenia/_build) | [![Build Status](https://dev.azure.com/windows98and95/xenia/_apis/build/status/illusion98.xenia?branchName=master_custom)](https://dev.azure.com/windows98and95/xenia/_build/latest?definitionId=1&branchName=master_custom) [![Build status](https://ci.appveyor.com/api/projects/status/n3h76k1mik1a8hfo?svg=true)](https://ci.appveyor.com/project/win98and95/xenia)
 
 ## Changes
 
