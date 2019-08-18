@@ -31,40 +31,11 @@ Use BT.709 as the default gamma
 
 Restored old icon
 
-New gflags added:
+New config options added:
 
-* `--signin_state` - User profile signed in
-  * Values:
-    * `1` = Signed in *(default)*
-    * `0` = Signed out
-
-* `--license_mask` - Set license for XBLA games.
-  * Values:
-    * `0` = Trial/demo *(default)*
-    * `1` = Activated/full
-
-* `--language` - Changes kernel language 
-  <details><summary>Values (click to expand list)</summary>
-  <p>
-
-  * `1` = ENGLISH *(default)*
-  * `2` = JAPANESE
-  * `3` = GERMAN
-  * `4` = FRENCH
-  * `5` = SPANISH
-  * `6` = ITALIAN
-  * `7` = KOREAN
-  * `8` = TCHINESE
-  * `9`= PORTUGUESE
-  * `10` = SCHINESE
-  * `11` = TCHINESE
-  * `12` = POLISH
-  * `13` = RUSSIAN
-  * `14` = CZECH
-  * `15` = DUTCH
-  * `16` = NORWEGIAN
-  </p>
-  </details>
+* `signin_state` - User profile signed in
+  * = `1` - Signed in *(default)*
+  * = `0` - Signed out
 
 Thanks to [theTwist84](https://github.com/theTwist84) and [Prism019](https://github.com/Prism019) for the help!
 
