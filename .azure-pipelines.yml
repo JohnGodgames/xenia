@@ -38,6 +38,7 @@ jobs:
   steps:
   - script: |
       git config --global core.autocrlf input
+      git checkout $(Build.SourceBranchName)
       xb setup
     displayName: 'Setup'
 
