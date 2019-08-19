@@ -105,15 +105,17 @@ X_STATUS XmaDecoder::Setup(kernel::KernelState* kernel_state) {
       reinterpret_cast<cpu::MMIOWriteCallback>(MMIOWriteRegisterThunk));
 
   // Setup XMA context data.
-  // TODO(Triang3l): Find out what address is used on a real console and why it
-  // doesn't work when allocated in 4 KB pages.
-  context_data_first_ptr_ =
-      memory()->SystemHeapAlloc(sizeof(XMA_CONTEXT_DATA) * kContextCount, 256,
-                                kSystemHeapPhysical | kSystemHeapLargePages);
+  // The Xbox 360 kernel allocates the contexts with X_PAGE_NOCACHE |
+  // X_PAGE_READWRITE and writes MmGetPhysicalAddress for the address to the
+  // register.
+  context_data_first_ptr_ = memory()->SystemHeapAlloc(
+      sizeof(XMA_CONTEXT_DATA) * kContextCount, 256, kSystemHeapPhysical);
   context_data_last_ptr_ =
       context_data_first_ptr_ + (sizeof(XMA_CONTEXT_DATA) * kContextCount - 1);
   register_file_[XE_XMA_REG_CONTEXT_ARRAY_ADDRESS].u32 =
-      context_data_first_ptr_;
+      memory()
+          ->LookupHeap(context_data_first_ptr_)
+          ->GetPhysicalAddress(context_data_first_ptr_);
 
   // Setup XMA contexts.
   for (int i = 0; i < kContextCount; ++i) {
