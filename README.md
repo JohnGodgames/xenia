@@ -1,6 +1,6 @@
 <p align="center">
-    <a href="https://github.com/win98and95/xenia/tree/master-custom/assets/icon">
-        <img height="120px" src="https://raw.githubusercontent.com/win98and95/xenia/master-custom/assets/icon/128x128.png" />
+    <a href="https://github.com/win98and95/xenia/tree/master_custom/assets/icon">
+        <img height="120px" src="https://raw.githubusercontent.com/win98and95/xenia/master_custom/assets/icon/128x128.png" />
     </a>
 </p>
 
@@ -23,7 +23,7 @@ Discussing illegal activities will get you banned.
 
 Buildbot | Status
 -------- | ------
-[Windows](https://dev.azure.com/windows98and95/xenia/_build) | [![Build Status](https://dev.azure.com/windows98and95/xenia/_apis/build/status/illusion98.xenia?branchName=master_custom)](https://dev.azure.com/windows98and95/xenia/_build/latest?definitionId=1&branchName=master_custom) [![Build status](https://ci.appveyor.com/api/projects/status/n3h76k1mik1a8hfo?svg=true)](https://ci.appveyor.com/project/win98and95/xenia)
+[Windows](https://dev.azure.com/windows98and95/xenia/_build) | [![Build Status](https://dev.azure.com/illusion9804/xenia/_apis/build/status/illusion98.xenia?branchName=master_custom)](https://dev.azure.com/illusion9804/xenia/_build/latest?definitionId=1&branchName=master_custom) [![Build status](https://ci.appveyor.com/api/projects/status/n3h76k1mik1a8hfo?svg=true)](https://ci.appveyor.com/project/win98and95/xenia)
 
 ## Changes
 
