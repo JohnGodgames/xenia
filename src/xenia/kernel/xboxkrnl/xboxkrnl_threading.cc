@@ -113,13 +113,14 @@ dword_result_t ExCreateThread(lpdword_t handle_ptr, dword_t stack_size,
   // Inherit default stack size
   uint32_t actual_stack_size = stack_size;
 
-  if (actual_stack_size == 0) {
+  if (actual_stack_size == 0 && !(creation_flags & 0x01)) {
     actual_stack_size = kernel_state()->GetExecutableModule()->stack_size();
   }
 
   // Stack must be aligned to 16kb pages
-  actual_stack_size =
-      std::max((uint32_t)0x4000, ((actual_stack_size + 0xFFF) & 0xFFFFF000));
+  if(!(creation_flags & 0x01))
+    actual_stack_size =
+        std::max((uint32_t)0x4000, ((actual_stack_size + 0xFFF) & 0xFFFFF000));
 
   auto thread = object_ref<XThread>(
       new XThread(kernel_state(), actual_stack_size, xapi_thread_startup,
