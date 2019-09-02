@@ -60,6 +60,9 @@ dword_result_t XNotifyGetNext(dword_t handle, dword_t match_id,
     // Asking for a specific notification
     id = match_id;
     dequeued = listener->DequeueNotification(match_id, &param);
+    // TODO(Gliniak): Requires research. There is no such match_id!
+    if (!dequeued && !param)
+      dequeued = listener->DequeueNotification(&id, &param);
   } else {
     // Just get next.
     dequeued = listener->DequeueNotification(&id, &param);
