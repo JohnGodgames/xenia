@@ -53,6 +53,10 @@ X_RESULT UnknownFEApp::DispatchMessageSync(uint32_t message,
              (uint32_t)data->unk_04);
       return X_ERROR_SUCCESS;
     }
+    case 0x0002B003: {
+      XELOGD("UnknownFEApp(0x0002B003)");
+      return X_ERROR_SUCCESS;
+    }
   }
   XELOGE(
       "Unimplemented 0xFE message app=%.8X, msg=%.8X, arg1=%.8X, "
