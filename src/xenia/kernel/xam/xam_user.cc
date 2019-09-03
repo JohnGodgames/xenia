@@ -34,6 +34,9 @@ X_HRESULT_result_t XamUserGetXUID(dword_t user_index, dword_t unk,
 }
 DECLARE_XAM_EXPORT1(XamUserGetXUID, kUserProfiles, kImplemented);
 
+dword_result_t XamGetLocaleEx(unknown_t unk1, unknown_t unk2) { return 0; }
+DECLARE_XAM_EXPORT1(XamGetLocaleEx, kNone, kStub);
+
 dword_result_t XamUserGetSigninState(dword_t user_index) {
   // Yield, as some games spam this.
   xe::threading::MaybeYield();
