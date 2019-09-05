@@ -13,6 +13,8 @@
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/kernel/xam/user_profile.h"
 
+DEFINE_int32(signin_state, 1, "Report that a user is signed in.", "Kernel");
+
 namespace xe {
 namespace kernel {
 namespace xam {
